@@ -243,51 +243,128 @@ filtered_df = merged_df[
 ]
 
 # =====================================================
-# FILTER FUNCTION
+# CASCADING FILTERS
 # =====================================================
 
-def apply_filter(df, column):
+# -------------------------
+# CIRCLE
+# -------------------------
 
-    options = sorted(
-        df[column]
-        .dropna()
-        .astype(str)
-        .unique()
-    )
+circle_options = sorted(
+    filtered_df["CIRCLE"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
 
-    selected = st.sidebar.multiselect(
-        column,
-        options=options
-    )
-
-    if len(selected) > 0:
-
-        df = df[
-            df[column]
-            .astype(str)
-            .isin(selected)
-        ]
-
-    return df
-
-# =====================================================
-# APPLY FILTERS
-# =====================================================
-
-filter_columns = [
+selected_circle = st.sidebar.multiselect(
     "CIRCLE",
+    options=circle_options
+)
+
+if len(selected_circle) > 0:
+
+    filtered_df = filtered_df[
+        filtered_df["CIRCLE"]
+        .astype(str)
+        .isin(selected_circle)
+    ]
+
+# -------------------------
+# DIVISION
+# -------------------------
+
+division_options = sorted(
+    filtered_df["DIVISION"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_division = st.sidebar.multiselect(
     "DIVISION",
+    options=division_options
+)
+
+if len(selected_division) > 0:
+
+    filtered_df = filtered_df[
+        filtered_df["DIVISION"]
+        .astype(str)
+        .isin(selected_division)
+    ]
+
+# -------------------------
+# ZONE/DC
+# -------------------------
+
+zone_options = sorted(
+    filtered_df["ZONE/DC"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_zone = st.sidebar.multiselect(
     "ZONE/DC",
+    options=zone_options
+)
+
+if len(selected_zone) > 0:
+
+    filtered_df = filtered_df[
+        filtered_df["ZONE/DC"]
+        .astype(str)
+        .isin(selected_zone)
+    ]
+
+# -------------------------
+# FEEDER S/S
+# -------------------------
+
+feeder_ss_options = sorted(
+    filtered_df["FEEDER S/S"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_feeder_ss = st.sidebar.multiselect(
     "FEEDER S/S",
-    "FEEDER TYPE"
-]
+    options=feeder_ss_options
+)
 
-for col in filter_columns:
+if len(selected_feeder_ss) > 0:
 
-    filtered_df = apply_filter(
-        filtered_df,
-        col
-    )
+    filtered_df = filtered_df[
+        filtered_df["FEEDER S/S"]
+        .astype(str)
+        .isin(selected_feeder_ss)
+    ]
+
+# -------------------------
+# FEEDER TYPE
+# -------------------------
+
+feeder_type_options = sorted(
+    filtered_df["FEEDER TYPE"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_feeder_type = st.sidebar.multiselect(
+    "FEEDER TYPE",
+    options=feeder_type_options
+)
+
+if len(selected_feeder_type) > 0:
+
+    filtered_df = filtered_df[
+        filtered_df["FEEDER TYPE"]
+        .astype(str)
+        .isin(selected_feeder_type)
+    ]
 
 # =====================================================
 # LATEST EVENT OF EACH METER ONLY
