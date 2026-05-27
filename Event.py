@@ -88,7 +88,6 @@ def load_data():
 
     return master_df, event_df
 
-
 # =====================================================
 # SAFE LOADING
 # =====================================================
@@ -156,6 +155,7 @@ merged_df = event_df.merge(
 # =====================================================
 
 start_time = merged_df["EVENT_TIME"].min()
+
 end_time = merged_df["EVENT_TIME"].max()
 
 col1, col2, col3 = st.columns(3)
@@ -198,26 +198,14 @@ st.sidebar.header("Filters")
 # DATETIME FILTERS
 # =====================================================
 
-start_filter = st.sidebar.text_input(
+start_filter = st.sidebar.datetime_input(
     "Start Datetime",
-    value=start_time.strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
+    value=start_time
 )
 
-end_filter = st.sidebar.text_input(
+end_filter = st.sidebar.datetime_input(
     "End Datetime",
-    value=end_time.strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-)
-
-start_filter = pd.to_datetime(
-    start_filter
-)
-
-end_filter = pd.to_datetime(
-    end_filter
+    value=end_time
 )
 
 filtered_df = merged_df[
@@ -238,23 +226,20 @@ def apply_filter(df, column):
         .unique()
     )
 
-    options = ["All"] + options
-
     selected = st.sidebar.multiselect(
         column,
-        options=options,
-        default=["All"]
+        options=options
     )
 
-    if "All" in selected or len(selected) == 0:
+    if len(selected) > 0:
 
-        return df
+        df = df[
+            df[column]
+            .astype(str)
+            .isin(selected)
+        ]
 
-    return df[
-        df[column]
-        .astype(str)
-        .isin(selected)
-    ]
+    return df
 
 # =====================================================
 # APPLY FILTERS
@@ -360,7 +345,7 @@ st.plotly_chart(
 )
 
 # =====================================================
-# METER SEQUENCE ANALYSIS
+# METER EVENT SEQUENCE
 # =====================================================
 
 sequence_df = (
@@ -443,8 +428,9 @@ fig3 = px.bar(
     x="SEQUENCE",
     y="COUNT",
     text="COUNT",
-    hover_data=["COUNT"],
-    title="Meter Sequence Patterns"
+    color="SEQUENCE",
+    title="Meter Sequence Patterns",
+    hover_data=["COUNT"]
 )
 
 fig3.update_traces(
@@ -465,15 +451,12 @@ sequence_options = sorted(
     .unique()
 )
 
-sequence_options = ["All"] + sequence_options
-
 selected_sequences = st.multiselect(
     "Sequence Filter",
-    options=sequence_options,
-    default=["All"]
+    options=sequence_options
 )
 
-if "All" not in selected_sequences:
+if len(selected_sequences) > 0:
 
     sequence_df = sequence_df[
         sequence_df["SEQUENCE"]
