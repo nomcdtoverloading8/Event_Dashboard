@@ -401,48 +401,6 @@ sequence_df = (
 )
 
 # =====================================================
-# SEQUENCE GRAPH
-# =====================================================
-
-pattern_graph_df = (
-    sequence_df["SEQUENCE"]
-    .value_counts()
-    .reset_index()
-)
-
-pattern_graph_df.columns = [
-    "SEQUENCE",
-    "COUNT"
-]
-
-pattern_graph_df = (
-    pattern_graph_df
-    .sort_values(
-        "COUNT",
-        ascending=False
-    )
-)
-
-fig3 = px.bar(
-    pattern_graph_df,
-    x="SEQUENCE",
-    y="COUNT",
-    text="COUNT",
-    color="SEQUENCE",
-    title="Meter Sequence Patterns",
-    hover_data=["COUNT"]
-)
-
-fig3.update_traces(
-    textposition="outside"
-)
-
-st.plotly_chart(
-    fig3,
-    use_container_width=True
-)
-
-# =====================================================
 # SEQUENCE FILTER
 # =====================================================
 
