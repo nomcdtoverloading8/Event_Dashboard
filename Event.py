@@ -40,7 +40,7 @@ MASTER_URL = (
 
 EVENT_URL = (
     f"https://docs.google.com/spreadsheets/d/"
-    f"{EVENT_FILE_ID}/export?format=csv"
+    f"{EVENT_FILE_ID}/export?=csv"
 )
 
 # =====================================================
@@ -199,7 +199,7 @@ st.sidebar.header("Filters")
 # =====================================================
 
 st.sidebar.caption(
-    "Datetime Format: DD-MM-YYYY HH:MM AM/PM"
+    "Datetime Format: \n DD-MM-YYYY HH:MM AM/PM"
 )
 
 start_filter_text = st.sidebar.text_input(
