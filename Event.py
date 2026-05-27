@@ -292,28 +292,39 @@ for col in filter_columns:
     )
 
 # =====================================================
-# EVENT CATEGORY FILTER
+# FINAL STATUS FILTER
 # =====================================================
 
-event_category_options = sorted(
-    filtered_df["EVENT_CATEGORY"]
-    .dropna()
-    .astype(str)
-    .unique()
+final_status_options = [
+    "Occurrence",
+    "Restoration"
+]
+
+selected_final_status = st.multiselect(
+    "Final Status Filter",
+    options=final_status_options
 )
 
-selected_event_categories = st.sidebar.multiselect(
-    "Event Category",
-    options=event_category_options
-)
+if len(selected_final_status) > 0:
 
-if len(selected_event_categories) > 0:
+    filtered_sequences = []
 
-    filtered_df = filtered_df[
-        filtered_df["EVENT_CATEGORY"]
-        .isin(selected_event_categories)
-    ]
+    for status in selected_final_status:
 
+        matching_sequences = sequence_df[
+            sequence_df["SEQUENCE"]
+            .str.endswith(status)
+        ]
+
+        filtered_sequences.append(
+            matching_sequences
+        )
+
+    if len(filtered_sequences) > 0:
+
+        sequence_df = pd.concat(
+            filtered_sequences
+        ).drop_duplicates()
 # =====================================================
 # OCCURRENCE VS RESTORATION COUNT
 # =====================================================
