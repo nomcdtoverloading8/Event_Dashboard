@@ -189,7 +189,7 @@ with col3:
     )
 
 # =====================================================
-# FILTERS
+# SIDEBAR FILTERS
 # =====================================================
 
 st.sidebar.header("Filters")
@@ -226,7 +226,38 @@ filtered_df = merged_df[
 ]
 
 # =====================================================
-# MULTIPLE FILTERS
+# FILTER FUNCTION
+# =====================================================
+
+def apply_filter(df, column):
+
+    options = sorted(
+        df[column]
+        .dropna()
+        .astype(str)
+        .unique()
+    )
+
+    options = ["All"] + options
+
+    selected = st.sidebar.multiselect(
+        column,
+        options=options,
+        default=["All"]
+    )
+
+    if "All" in selected or len(selected) == 0:
+
+        return df
+
+    return df[
+        df[column]
+        .astype(str)
+        .isin(selected)
+    ]
+
+# =====================================================
+# APPLY FILTERS
 # =====================================================
 
 filter_columns = [
@@ -239,24 +270,10 @@ filter_columns = [
 
 for col in filter_columns:
 
-    options = sorted(
-        filtered_df[col]
-        .dropna()
-        .unique()
+    filtered_df = apply_filter(
+        filtered_df,
+        col
     )
-
-    selected = st.sidebar.multiselect(
-        col,
-        options=options,
-        default=options
-    )
-
-    if selected:
-
-        filtered_df = filtered_df[
-            filtered_df[col]
-            .isin(selected)
-        ]
 
 # =====================================================
 # EVENT COUNTS
@@ -356,7 +373,7 @@ sequence_df = (
 
         "EVENT_CATEGORY":
             lambda x:
-            " → ".join(x),
+            " -> ".join(x),
 
         "EVENT_TIME":
             ["min", "max"],
@@ -399,69 +416,33 @@ sequence_df = (
 )
 
 # =====================================================
-# SEQUENCE CLASSIFICATION
-# =====================================================
-
-def classify_sequence(seq):
-
-    seq = seq.lower()
-
-    occ_count = seq.count(
-        "occurrence"
-    )
-
-    res_count = seq.count(
-        "restoration"
-    )
-
-    if occ_count > 0 and res_count == 0:
-
-        return "Only Occurrence"
-
-    elif occ_count > 0 and res_count > 0:
-
-        if occ_count == res_count:
-
-            return "Fully Restored"
-
-        else:
-
-            return "Partially Restored"
-
-    elif res_count > 0 and occ_count == 0:
-
-        return "Only Restoration"
-
-    else:
-
-        return "Unknown"
-
-sequence_df["PATTERN"] = (
-    sequence_df["SEQUENCE"]
-    .apply(classify_sequence)
-)
-
-# =====================================================
-# PATTERN GRAPH
+# SEQUENCE GRAPH
 # =====================================================
 
 pattern_graph_df = (
-    sequence_df["PATTERN"]
+    sequence_df["SEQUENCE"]
     .value_counts()
     .reset_index()
 )
 
 pattern_graph_df.columns = [
-    "PATTERN",
+    "SEQUENCE",
     "COUNT"
 ]
 
+pattern_graph_df = (
+    pattern_graph_df
+    .sort_values(
+        "COUNT",
+        ascending=False
+    )
+)
+
 fig3 = px.bar(
     pattern_graph_df,
-    x="PATTERN",
+    x="SEQUENCE",
     y="COUNT",
     text="COUNT",
-    color="PATTERN",
     hover_data=["COUNT"],
     title="Meter Sequence Patterns"
 )
@@ -476,22 +457,31 @@ st.plotly_chart(
 )
 
 # =====================================================
-# PATTERN FILTER
+# SEQUENCE FILTER
 # =====================================================
 
-pattern_filter = st.multiselect(
-    "Pattern Filter",
-    options=sequence_df["PATTERN"].unique(),
-    default=sequence_df["PATTERN"].unique()
+sequence_options = sorted(
+    sequence_df["SEQUENCE"]
+    .unique()
 )
 
-sequence_df = sequence_df[
-    sequence_df["PATTERN"]
-    .isin(pattern_filter)
-]
+sequence_options = ["All"] + sequence_options
+
+selected_sequences = st.multiselect(
+    "Sequence Filter",
+    options=sequence_options,
+    default=["All"]
+)
+
+if "All" not in selected_sequences:
+
+    sequence_df = sequence_df[
+        sequence_df["SEQUENCE"]
+        .isin(selected_sequences)
+    ]
 
 # =====================================================
-# SEARCH FILTER
+# METER SEARCH
 # =====================================================
 
 meter_search = st.text_input(
