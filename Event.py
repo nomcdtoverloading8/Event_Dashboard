@@ -304,28 +304,7 @@ latest_df = (
 )
 
 # =====================================================
-# EVENT CATEGORY FILTER
-# =====================================================
-
-event_options = [
-    "Occurrence",
-    "Restoration"
-]
-
-selected_event_filter = st.sidebar.multiselect(
-    "Latest Meter Status",
-    options=event_options
-)
-
-if len(selected_event_filter) > 0:
-
-    latest_df = latest_df[
-        latest_df["EVENT_CATEGORY"]
-        .isin(selected_event_filter)
-    ]
-
-# =====================================================
-# OCCURRENCE VS RESTORATION COUNT
+# LATEST STATUS COUNT
 # =====================================================
 
 count_df = (
@@ -363,45 +342,39 @@ st.plotly_chart(
 
 timeline_df = filtered_df.copy()
 
-timeline_df["TIME_BLOCK"] = (
+timeline_df["TIME_LABEL"] = (
     timeline_df["EVENT_TIME"]
-    .dt.floor("15min")
+    .dt.strftime(
+        "%d-%m-%Y %I:%M:%S %p"
+    )
 )
 
 timeline_summary = (
     timeline_df.groupby(
-        ["TIME_BLOCK", "EVENT_CATEGORY"]
+        ["TIME_LABEL", "EVENT_CATEGORY"]
     )
     .size()
     .reset_index(name="COUNT")
 )
 
-timeline_summary["TIME_LABEL"] = (
-    timeline_summary["TIME_BLOCK"]
-    .dt.strftime(
-        "%d-%m-%Y %I:%M %p"
-    )
-)
-
 fig2 = px.line(
     timeline_summary,
-    x="TIME_BLOCK",
+    x="TIME_LABEL",
     y="COUNT",
     color="EVENT_CATEGORY",
     markers=True,
-    custom_data=["TIME_LABEL"]
+    title="Restoration vs Occurrence Timeline"
 )
 
 fig2.update_traces(
     hovertemplate=
-    "<b>Datetime:</b> %{customdata[0]}<br>" +
+    "<b>Datetime:</b> %{x}<br>" +
     "<b>Count:</b> %{y}<br>" +
     "<b>Category:</b> %{fullData.name}" +
     "<extra></extra>"
 )
 
 fig2.update_layout(
-    title="Restoration vs Occurrence Timeline",
     hovermode="x unified"
 )
 
@@ -425,7 +398,7 @@ st.plotly_chart(
 )
 
 # =====================================================
-# METER SEQUENCE TABLE
+# METER EVENT SEQUENCE
 # =====================================================
 
 sequence_df = (
@@ -478,25 +451,15 @@ sequence_df.columns = [
 sequence_df = sequence_df.reset_index()
 
 # =====================================================
-# ADD FINAL STATUS
+# FINAL STATUS COLUMN
 # =====================================================
 
-sequence_df["FINAL_STATUS"] = (
+sequence_df["LATEST_STATUS"] = (
     sequence_df["SEQUENCE"]
     .str.split(" -> ")
     .str[-1]
+    .str.strip()
 )
-
-# =====================================================
-# APPLY FINAL STATUS FILTER
-# =====================================================
-
-if len(selected_event_filter) > 0:
-
-    sequence_df = sequence_df[
-        sequence_df["FINAL_STATUS"]
-        .isin(selected_event_filter)
-    ]
 
 # =====================================================
 # SEQUENCE FILTER
@@ -542,6 +505,25 @@ if len(selected_sequences) > 0:
     ]
 
 # =====================================================
+# LATEST STATUS FILTER
+# =====================================================
+
+latest_status_filter = st.multiselect(
+    "Latest Meter Status Filter",
+    options=[
+        "Occurrence",
+        "Restoration"
+    ]
+)
+
+if len(latest_status_filter) > 0:
+
+    sequence_df = sequence_df[
+        sequence_df["LATEST_STATUS"]
+        .isin(latest_status_filter)
+    ]
+
+# =====================================================
 # SEARCH METER ID
 # =====================================================
 
@@ -579,11 +561,11 @@ sequence_df["END_TIME"] = (
 )
 
 # =====================================================
-# REMOVE FINAL STATUS COLUMN
+# REMOVE HELPER COLUMN
 # =====================================================
 
 sequence_df = sequence_df.drop(
-    columns=["FINAL_STATUS"]
+    columns=["LATEST_STATUS"]
 )
 
 # =====================================================
