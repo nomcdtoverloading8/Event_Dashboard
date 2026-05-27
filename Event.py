@@ -15,7 +15,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("⚡ Restoration Outage Dashboard")
+st.title("Restoration Outage Dashboard")
 
 # Hide ugly error traces
 st.set_option('client.showErrorDetails', False)
@@ -158,7 +158,7 @@ merged_df = event_df.merge(
 # DATA DURATION
 # =====================================================
 
-st.subheader("📅 Data Duration")
+st.subheader("Data Duration")
 
 start_time = merged_df["EVENT_TIME"].min()
 
@@ -239,7 +239,7 @@ if selected_circle:
 # EVENT COUNTS
 # =====================================================
 
-st.subheader("📊 Event Counts")
+st.subheader("Event Counts")
 
 count_df = (
     filtered_df["EVENT_CATEGORY"]
@@ -269,7 +269,7 @@ st.plotly_chart(
 # TIMELINE GRAPH
 # =====================================================
 
-st.subheader("📈 Event Timeline")
+st.subheader("Event Timeline")
 
 filtered_df["HOUR"] = (
     filtered_df["EVENT_TIME"]
@@ -302,7 +302,7 @@ st.plotly_chart(
 # METER EVENT SEQUENCES
 # =====================================================
 
-st.subheader("🔄 Meter Event Sequences")
+st.subheader("Meter Event Sequences")
 
 filtered_df = filtered_df.sort_values(
     ["METER_ID", "EVENT_TIME"]
@@ -330,7 +330,7 @@ st.dataframe(
 # RAW DATA
 # =====================================================
 
-st.subheader("🧾 Raw Data")
+st.subheader("Raw Data")
 
 st.dataframe(
     filtered_df,
