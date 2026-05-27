@@ -307,25 +307,18 @@ selected_final_status = st.multiselect(
 
 if len(selected_final_status) > 0:
 
-    filtered_sequences = []
+    # GET FINAL EVENT ONLY
+    sequence_df["FINAL_STATUS"] = (
+        sequence_df["SEQUENCE"]
+        .str.split(" -> ")
+        .str[-1]
+        .str.strip()
+    )
 
-    for status in selected_final_status:
-
-        matching_sequences = sequence_df[
-            sequence_df["SEQUENCE"]
-            .str.endswith(status)
-        ]
-
-        filtered_sequences.append(
-            matching_sequences
-        )
-
-    if len(filtered_sequences) > 0:
-
-        sequence_df = pd.concat(
-            filtered_sequences
-        ).drop_duplicates()
-# =====================================================
+    sequence_df = sequence_df[
+        sequence_df["FINAL_STATUS"]
+        .isin(selected_final_status)]
+#=====================================================
 # OCCURRENCE VS RESTORATION COUNT
 # =====================================================
 
