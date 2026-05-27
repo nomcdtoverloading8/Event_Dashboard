@@ -452,36 +452,35 @@ sequence_df = (
 )
 
 # =====================================================
-# SEQUENCE FILTER
+# SEQUENCE FILTERS
 # =====================================================
 
 st.markdown(
     "### Sequence Filters"
 )
 
-st.markdown(
-    "**Most Common Patterns:**"
-)
-
-common_patterns = [
-    "Occurrence",
-    "Occurrence -> Restoration",
-    "Occurrence -> Restoration -> Occurrence",
-    "Restoration"
-]
-
 sequence_options = list(
     sequence_df["SEQUENCE"]
     .unique()
 )
 
+priority_patterns = [
+    "Occurrence",
+    "Restoration"
+]
+
 ordered_options = []
 
-for pattern in common_patterns:
+for pattern in priority_patterns:
 
-    if pattern in sequence_options:
+    matching = [
+        x for x in sequence_options
+        if x.startswith(pattern)
+    ]
 
-        ordered_options.append(pattern)
+    ordered_options.extend(
+        sorted(matching)
+    )
 
 remaining_patterns = sorted([
     x for x in sequence_options
