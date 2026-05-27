@@ -50,7 +50,6 @@ EVENT_URL = (
 @st.cache_data(ttl=300)
 def load_data():
 
-    # MASTER FILE
     master_df = pd.read_csv(MASTER_URL)
 
     master_df.columns = (
@@ -59,7 +58,6 @@ def load_data():
         .str.upper()
     )
 
-    # EVENT FILE HEADER DETECTION
     temp_df = pd.read_csv(
         EVENT_URL,
         header=None
@@ -292,11 +290,46 @@ for col in filter_columns:
     )
 
 # =====================================================
+# LATEST EVENT OF EACH METER ONLY
+# =====================================================
+
+latest_df = (
+    filtered_df
+    .sort_values(
+        "EVENT_TIME"
+    )
+    .groupby("METER_ID")
+    .tail(1)
+    .copy()
+)
+
+# =====================================================
+# EVENT CATEGORY FILTER
+# =====================================================
+
+event_options = [
+    "Occurrence",
+    "Restoration"
+]
+
+selected_event_filter = st.sidebar.multiselect(
+    "Latest Meter Status",
+    options=event_options
+)
+
+if len(selected_event_filter) > 0:
+
+    latest_df = latest_df[
+        latest_df["EVENT_CATEGORY"]
+        .isin(selected_event_filter)
+    ]
+
+# =====================================================
 # OCCURRENCE VS RESTORATION COUNT
 # =====================================================
 
 count_df = (
-    filtered_df["EVENT_CATEGORY"]
+    latest_df["EVENT_CATEGORY"]
     .value_counts()
     .reset_index()
 )
@@ -312,7 +345,7 @@ fig1 = px.bar(
     y="COUNT",
     text="COUNT",
     color="EVENT_CATEGORY",
-    title="Occurrence vs Restoration Count"
+    title="Latest Meter Status Count"
 )
 
 fig1.update_traces(
@@ -392,7 +425,7 @@ st.plotly_chart(
 )
 
 # =====================================================
-# METER EVENT SEQUENCE
+# METER SEQUENCE TABLE
 # =====================================================
 
 sequence_df = (
@@ -443,6 +476,27 @@ sequence_df.columns = [
 ]
 
 sequence_df = sequence_df.reset_index()
+
+# =====================================================
+# ADD FINAL STATUS
+# =====================================================
+
+sequence_df["FINAL_STATUS"] = (
+    sequence_df["SEQUENCE"]
+    .str.split(" -> ")
+    .str[-1]
+)
+
+# =====================================================
+# APPLY FINAL STATUS FILTER
+# =====================================================
+
+if len(selected_event_filter) > 0:
+
+    sequence_df = sequence_df[
+        sequence_df["FINAL_STATUS"]
+        .isin(selected_event_filter)
+    ]
 
 # =====================================================
 # SEQUENCE FILTER
@@ -522,6 +576,14 @@ sequence_df["END_TIME"] = (
     .dt.strftime(
         "%d-%m-%Y %I:%M:%S %p"
     )
+)
+
+# =====================================================
+# REMOVE FINAL STATUS COLUMN
+# =====================================================
+
+sequence_df = sequence_df.drop(
+    columns=["FINAL_STATUS"]
 )
 
 # =====================================================
