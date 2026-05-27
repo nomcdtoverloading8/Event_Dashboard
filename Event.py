@@ -199,7 +199,8 @@ st.sidebar.header("Filters")
 # =====================================================
 
 st.sidebar.caption(
-    "Datetime Format: \n DD-MM-YYYY HH:MM AM/PM"
+    "Datetime Format:\n"
+    "DD-MM-YYYY HH:MM AM/PM"
 )
 
 start_filter_text = st.sidebar.text_input(
