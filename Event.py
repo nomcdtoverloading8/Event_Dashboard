@@ -342,15 +342,12 @@ st.plotly_chart(
 
 timeline_df = filtered_df.copy()
 
-# SMART TIME GROUPING
 time_difference = (
     end_filter - start_filter
 ).total_seconds()
 
-# AUTO TIME BLOCK
 if time_difference <= 3600:
 
-    # <= 1 hour
     timeline_df["TIME_BLOCK"] = (
         timeline_df["EVENT_TIME"]
         .dt.floor("5min")
@@ -358,7 +355,6 @@ if time_difference <= 3600:
 
 elif time_difference <= 21600:
 
-    # <= 6 hours
     timeline_df["TIME_BLOCK"] = (
         timeline_df["EVENT_TIME"]
         .dt.floor("15min")
@@ -366,7 +362,6 @@ elif time_difference <= 21600:
 
 elif time_difference <= 86400:
 
-    # <= 1 day
     timeline_df["TIME_BLOCK"] = (
         timeline_df["EVENT_TIME"]
         .dt.floor("1H")
@@ -374,7 +369,6 @@ elif time_difference <= 86400:
 
 else:
 
-    # > 1 day
     timeline_df["TIME_BLOCK"] = (
         timeline_df["EVENT_TIME"]
         .dt.floor("6H")
@@ -474,6 +468,32 @@ sequence_df = (
     })
 )
 
+# =====================================================
+# LAST OCCURRENCE
+# =====================================================
+
+last_occurrence_df = (
+
+    filtered_df[
+        filtered_df["EVENT_CATEGORY"] == "Occurrence"
+    ]
+
+    .sort_values("EVENT_TIME")
+
+    .groupby("METER_ID")
+
+    .tail(1)[[
+        "METER_ID",
+        "EVENT_TIME"
+    ]]
+
+    .rename(
+        columns={
+            "EVENT_TIME": "LAST_OCCURRENCE"
+        }
+    )
+)
+
 sequence_df.columns = [
     "SEQUENCE",
     "START_TIME",
@@ -487,6 +507,12 @@ sequence_df.columns = [
 ]
 
 sequence_df = sequence_df.reset_index()
+
+sequence_df = sequence_df.merge(
+    last_occurrence_df,
+    on="METER_ID",
+    how="left"
+)
 
 # =====================================================
 # FINAL STATUS COLUMN
@@ -585,14 +611,30 @@ if meter_search:
 # =====================================================
 
 sequence_df["START_TIME"] = (
-    sequence_df["START_TIME"]
+    pd.to_datetime(
+        sequence_df["START_TIME"],
+        errors="coerce"
+    )
     .dt.strftime(
         "%d-%m-%Y %I:%M:%S %p"
     )
 )
 
 sequence_df["END_TIME"] = (
-    sequence_df["END_TIME"]
+    pd.to_datetime(
+        sequence_df["END_TIME"],
+        errors="coerce"
+    )
+    .dt.strftime(
+        "%d-%m-%Y %I:%M:%S %p"
+    )
+)
+
+sequence_df["LAST_OCCURRENCE"] = (
+    pd.to_datetime(
+        sequence_df["LAST_OCCURRENCE"],
+        errors="coerce"
+    )
     .dt.strftime(
         "%d-%m-%Y %I:%M:%S %p"
     )
