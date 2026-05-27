@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.express as px
 
 # =====================================================
-# STREAMLIT SETTINGS
+# PAGE CONFIG
 # =====================================================
 
 st.set_page_config(
@@ -17,7 +17,10 @@ st.set_page_config(
 
 st.title("Restoration Outage Dashboard")
 
-st.set_option('client.showErrorDetails', False)
+st.set_option(
+    'client.showErrorDetails',
+    False
+)
 
 # =====================================================
 # GOOGLE SHEET IDS
@@ -56,7 +59,7 @@ def load_data():
         .str.upper()
     )
 
-    # EVENT FILE AUTO HEADER DETECTION
+    # EVENT FILE HEADER DETECTION
     temp_df = pd.read_csv(
         EVENT_URL,
         header=None
@@ -162,7 +165,9 @@ with col1:
     st.caption("Start Time")
 
     st.write(
-        start_time.strftime("%d-%m-%Y %I:%M %p")
+        start_time.strftime(
+            "%d-%m-%Y %I:%M %p"
+        )
     )
 
 with col2:
@@ -170,7 +175,9 @@ with col2:
     st.caption("End Time")
 
     st.write(
-        end_time.strftime("%d-%m-%Y %I:%M %p")
+        end_time.strftime(
+            "%d-%m-%Y %I:%M %p"
+        )
     )
 
 with col3:
@@ -182,43 +189,35 @@ with col3:
     )
 
 # =====================================================
-# SIDEBAR FILTERS
+# FILTERS
 # =====================================================
 
 st.sidebar.header("Filters")
 
 # =====================================================
-# DATE FILTER
+# DATETIME FILTERS
 # =====================================================
 
-start_date = st.sidebar.date_input(
-    "Start Date",
-    value=start_time.date()
+start_filter = st.sidebar.text_input(
+    "Start Datetime",
+    value=start_time.strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
 )
 
-start_clock = st.sidebar.time_input(
-    "Start Time",
-    value=start_time.time()
+end_filter = st.sidebar.text_input(
+    "End Datetime",
+    value=end_time.strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
 )
 
-end_date = st.sidebar.date_input(
-    "End Date",
-    value=end_time.date()
+start_filter = pd.to_datetime(
+    start_filter
 )
 
-end_clock = st.sidebar.time_input(
-    "End Time",
-    value=end_time.time()
-)
-
-start_filter = pd.Timestamp.combine(
-    start_date,
-    start_clock
-)
-
-end_filter = pd.Timestamp.combine(
-    end_date,
-    end_clock
+end_filter = pd.to_datetime(
+    end_filter
 )
 
 filtered_df = merged_df[
@@ -227,7 +226,7 @@ filtered_df = merged_df[
 ]
 
 # =====================================================
-# FILTERS
+# MULTIPLE FILTERS
 # =====================================================
 
 filter_columns = [
@@ -255,7 +254,8 @@ for col in filter_columns:
     if selected:
 
         filtered_df = filtered_df[
-            filtered_df[col].isin(selected)
+            filtered_df[col]
+            .isin(selected)
         ]
 
 # =====================================================
@@ -273,21 +273,21 @@ count_df.columns = [
     "COUNT"
 ]
 
-fig = px.bar(
+fig1 = px.bar(
     count_df,
     x="EVENT_CATEGORY",
     y="COUNT",
     text="COUNT",
     color="EVENT_CATEGORY",
-    title="Occurrence vs Restoration"
+    title="Occurrence vs Restoration Count"
 )
 
-fig.update_traces(
+fig1.update_traces(
     textposition="outside"
 )
 
 st.plotly_chart(
-    fig,
+    fig1,
     use_container_width=True
 )
 
@@ -312,7 +312,9 @@ timeline_summary = (
 
 timeline_summary["TIME_LABEL"] = (
     timeline_summary["TIME_BLOCK"]
-    .dt.strftime("%d-%m-%Y %I:%M %p")
+    .dt.strftime(
+        "%d-%m-%Y %I:%M %p"
+    )
 )
 
 fig2 = px.line(
@@ -341,17 +343,20 @@ st.plotly_chart(
 )
 
 # =====================================================
-# METER EVENT SEQUENCE
+# METER SEQUENCE ANALYSIS
 # =====================================================
 
 sequence_df = (
     filtered_df
-    .sort_values(["METER_ID", "EVENT_TIME"])
+    .sort_values(
+        ["METER_ID", "EVENT_TIME"]
+    )
     .groupby("METER_ID")
     .agg({
 
         "EVENT_CATEGORY":
-            lambda x: " → ".join(x),
+            lambda x:
+            " → ".join(x),
 
         "EVENT_TIME":
             ["min", "max"],
@@ -388,7 +393,10 @@ sequence_df.columns = [
     "FEEDER TYPE"
 ]
 
-sequence_df = sequence_df.reset_index()
+sequence_df = (
+    sequence_df
+    .reset_index()
+)
 
 # =====================================================
 # SEQUENCE CLASSIFICATION
@@ -398,46 +406,68 @@ def classify_sequence(seq):
 
     seq = seq.lower()
 
-    has_occ = "occurrence" in seq
-    has_res = "restoration" in seq
+    occ_count = seq.count(
+        "occurrence"
+    )
 
-    if has_occ and not has_res:
-        return "Not Restored"
+    res_count = seq.count(
+        "restoration"
+    )
 
-    elif has_occ and has_res:
-        return "Restored"
+    if occ_count > 0 and res_count == 0:
 
-    elif has_res and not has_occ:
-        return "Restoration Only"
+        return "Only Occurrence"
+
+    elif occ_count > 0 and res_count > 0:
+
+        if occ_count == res_count:
+
+            return "Fully Restored"
+
+        else:
+
+            return "Partially Restored"
+
+    elif res_count > 0 and occ_count == 0:
+
+        return "Only Restoration"
 
     else:
+
         return "Unknown"
 
-sequence_df["STATUS"] = (
+sequence_df["PATTERN"] = (
     sequence_df["SEQUENCE"]
     .apply(classify_sequence)
 )
 
 # =====================================================
-# SEQUENCE GRAPH
+# PATTERN GRAPH
 # =====================================================
 
-sequence_graph_df = (
-    sequence_df["STATUS"]
+pattern_graph_df = (
+    sequence_df["PATTERN"]
     .value_counts()
     .reset_index()
 )
 
-sequence_graph_df.columns = [
-    "STATUS",
+pattern_graph_df.columns = [
+    "PATTERN",
     "COUNT"
 ]
 
-fig3 = px.pie(
-    sequence_graph_df,
-    names="STATUS",
-    values="COUNT",
-    title="Meter Restoration Status"
+fig3 = px.bar(
+    pattern_graph_df,
+    x="PATTERN",
+    y="COUNT",
+    text="COUNT",
+    color="PATTERN",
+    hover_data=["COUNT"],
+    title="Meter Sequence Patterns"
+)
+
+fig3.update_traces(
+    textposition="outside"
 )
 
 st.plotly_chart(
@@ -446,28 +476,27 @@ st.plotly_chart(
 )
 
 # =====================================================
-# SEQUENCE FILTERS
+# PATTERN FILTER
 # =====================================================
 
-col1, col2 = st.columns(2)
+pattern_filter = st.multiselect(
+    "Pattern Filter",
+    options=sequence_df["PATTERN"].unique(),
+    default=sequence_df["PATTERN"].unique()
+)
 
-with col1:
-
-    meter_search = st.text_input(
-        "Search Meter ID"
-    )
-
-with col2:
-
-    status_filter = st.multiselect(
-        "Status Filter",
-        options=sequence_df["STATUS"].unique(),
-        default=sequence_df["STATUS"].unique()
-    )
+sequence_df = sequence_df[
+    sequence_df["PATTERN"]
+    .isin(pattern_filter)
+]
 
 # =====================================================
-# APPLY FILTERS
+# SEARCH FILTER
 # =====================================================
+
+meter_search = st.text_input(
+    "Search Meter ID"
+)
 
 if meter_search:
 
@@ -480,27 +509,26 @@ if meter_search:
         )
     ]
 
-sequence_df = sequence_df[
-    sequence_df["STATUS"]
-    .isin(status_filter)
-]
-
 # =====================================================
 # FORMAT TIMES
 # =====================================================
 
 sequence_df["START_TIME"] = (
     sequence_df["START_TIME"]
-    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+    .dt.strftime(
+        "%d-%m-%Y %I:%M:%S %p"
+    )
 )
 
 sequence_df["END_TIME"] = (
     sequence_df["END_TIME"]
-    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+    .dt.strftime(
+        "%d-%m-%Y %I:%M:%S %p"
+    )
 )
 
 # =====================================================
-# DISPLAY TABLE
+# SEQUENCE TABLE
 # =====================================================
 
 st.dataframe(
@@ -513,7 +541,9 @@ st.dataframe(
 # RAW DATA
 # =====================================================
 
-with st.expander("Raw Data"):
+with st.expander(
+    "Raw Data"
+):
 
     st.dataframe(
         filtered_df,
