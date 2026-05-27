@@ -289,60 +289,37 @@ for col in filter_columns:
     )
 
 # =====================================================
-# EVENT COUNTS + PERIOD
+# OCCURRENCE VS RESTORATION COUNT
 # =====================================================
 
-col1, col2 = st.columns([3, 1])
+count_df = (
+    filtered_df["EVENT_CATEGORY"]
+    .value_counts()
+    .reset_index()
+)
 
-with col1:
+count_df.columns = [
+    "EVENT_CATEGORY",
+    "COUNT"
+]
 
-    count_df = (
-        filtered_df["EVENT_CATEGORY"]
-        .value_counts()
-        .reset_index()
-    )
+fig1 = px.bar(
+    count_df,
+    x="EVENT_CATEGORY",
+    y="COUNT",
+    text="COUNT",
+    color="EVENT_CATEGORY",
+    title="Occurrence vs Restoration Count"
+)
 
-    count_df.columns = [
-        "EVENT_CATEGORY",
-        "COUNT"
-    ]
+fig1.update_traces(
+    textposition="outside"
+)
 
-    fig1 = px.bar(
-        count_df,
-        x="EVENT_CATEGORY",
-        y="COUNT",
-        text="COUNT",
-        color="EVENT_CATEGORY",
-        title="Occurrence vs Restoration Count"
-    )
-
-    fig1.update_traces(
-        textposition="outside"
-    )
-
-    st.plotly_chart(
-        fig1,
-        use_container_width=True
-    )
-
-with col2:
-
-    st.markdown("### Period")
-
-    st.write(
-        f"**From:**  \n"
-        f"{start_filter.strftime('%d-%m-%Y %I:%M %p')}"
-    )
-
-    st.write(
-        f"**To:**  \n"
-        f"{end_filter.strftime('%d-%m-%Y %I:%M %p')}"
-    )
-
-    st.write(
-        f"**Duration:**  \n"
-        f"{str(end_filter - start_filter)}"
-    )
+st.plotly_chart(
+    fig1,
+    use_container_width=True
+)
 
 # =====================================================
 # EVENT TIMELINE
@@ -381,13 +358,33 @@ fig2 = px.line(
 
 fig2.update_traces(
     hovertemplate=
-    "<b>Time:</b> %{customdata[0]}<br>" +
-    "<b>Count:</b> %{y}<extra></extra>"
+    "<b>Datetime:</b> %{customdata[0]}<br>" +
+    "<b>Count:</b> %{y}<br>" +
+    "<b>Category:</b> %{fullData.name}" +
+    "<extra></extra>"
 )
 
 fig2.update_layout(
     title="Restoration vs Occurrence Timeline",
     hovermode="x unified"
+)
+
+# =====================================================
+# FORCE ALL X-AXIS TO SHOW TOOLTIPS
+# =====================================================
+
+fig2.update_xaxes(
+    showspikes=True,
+    spikemode="across",
+    spikesnap="cursor",
+    showline=True
+)
+
+fig2.update_yaxes(
+    showspikes=True,
+    spikemode="across",
+    spikesnap="cursor",
+    showline=True
 )
 
 st.plotly_chart(
