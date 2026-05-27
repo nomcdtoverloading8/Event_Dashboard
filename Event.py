@@ -289,37 +289,60 @@ for col in filter_columns:
     )
 
 # =====================================================
-# EVENT COUNTS
+# EVENT COUNTS + PERIOD
 # =====================================================
 
-count_df = (
-    filtered_df["EVENT_CATEGORY"]
-    .value_counts()
-    .reset_index()
-)
+col1, col2 = st.columns([3, 1])
 
-count_df.columns = [
-    "EVENT_CATEGORY",
-    "COUNT"
-]
+with col1:
 
-fig1 = px.bar(
-    count_df,
-    x="EVENT_CATEGORY",
-    y="COUNT",
-    text="COUNT",
-    color="EVENT_CATEGORY",
-    title="Occurrence vs Restoration Count"
-)
+    count_df = (
+        filtered_df["EVENT_CATEGORY"]
+        .value_counts()
+        .reset_index()
+    )
 
-fig1.update_traces(
-    textposition="outside"
-)
+    count_df.columns = [
+        "EVENT_CATEGORY",
+        "COUNT"
+    ]
 
-st.plotly_chart(
-    fig1,
-    use_container_width=True
-)
+    fig1 = px.bar(
+        count_df,
+        x="EVENT_CATEGORY",
+        y="COUNT",
+        text="COUNT",
+        color="EVENT_CATEGORY",
+        title="Occurrence vs Restoration Count"
+    )
+
+    fig1.update_traces(
+        textposition="outside"
+    )
+
+    st.plotly_chart(
+        fig1,
+        use_container_width=True
+    )
+
+with col2:
+
+    st.markdown("### Period")
+
+    st.write(
+        f"**From:**  \n"
+        f"{start_filter.strftime('%d-%m-%Y %I:%M %p')}"
+    )
+
+    st.write(
+        f"**To:**  \n"
+        f"{end_filter.strftime('%d-%m-%Y %I:%M %p')}"
+    )
+
+    st.write(
+        f"**Duration:**  \n"
+        f"{str(end_filter - start_filter)}"
+    )
 
 # =====================================================
 # EVENT TIMELINE
@@ -432,14 +455,46 @@ sequence_df = (
 # SEQUENCE FILTER
 # =====================================================
 
-sequence_options = sorted(
+st.markdown(
+    "### Sequence Filters"
+)
+
+st.markdown(
+    "**Most Common Patterns:**"
+)
+
+common_patterns = [
+    "Occurrence",
+    "Occurrence -> Restoration",
+    "Occurrence -> Restoration -> Occurrence",
+    "Restoration"
+]
+
+sequence_options = list(
     sequence_df["SEQUENCE"]
     .unique()
 )
 
+ordered_options = []
+
+for pattern in common_patterns:
+
+    if pattern in sequence_options:
+
+        ordered_options.append(pattern)
+
+remaining_patterns = sorted([
+    x for x in sequence_options
+    if x not in ordered_options
+])
+
+ordered_options.extend(
+    remaining_patterns
+)
+
 selected_sequences = st.multiselect(
-    "Sequence Filter",
-    options=sequence_options
+    "Select Sequence Patterns",
+    options=ordered_options
 )
 
 if len(selected_sequences) > 0:
@@ -495,20 +550,6 @@ st.dataframe(
     use_container_width=True,
     height=500
 )
-
-# =====================================================
-# RAW DATA
-# =====================================================
-
-with st.expander(
-    "Raw Data"
-):
-
-    st.dataframe(
-        filtered_df,
-        use_container_width=True,
-        height=500
-    )
 
 # =====================================================
 # FOOTER
