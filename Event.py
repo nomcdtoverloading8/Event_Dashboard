@@ -511,6 +511,37 @@ if len(selected_sequences) > 0:
     ]
 
 # =====================================================
+# EVENT CATEGORY FILTER FOR FINAL TABLE
+# =====================================================
+
+table_event_options = sorted(
+    filtered_df["EVENT_CATEGORY"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_table_events = st.multiselect(
+    "Event Category Filter",
+    options=table_event_options
+)
+
+if len(selected_table_events) > 0:
+
+    filtered_meter_ids = (
+        filtered_df[
+            filtered_df["EVENT_CATEGORY"]
+            .isin(selected_table_events)
+        ]["METER_ID"]
+        .unique()
+    )
+
+    sequence_df = sequence_df[
+        sequence_df["METER_ID"]
+        .isin(filtered_meter_ids)
+    ]
+
+# =====================================================
 # METER SEARCH
 # =====================================================
 
