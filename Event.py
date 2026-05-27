@@ -273,7 +273,7 @@ st.subheader("📈 Event Timeline")
 
 filtered_df["HOUR"] = (
     filtered_df["EVENT_TIME"]
-    .dt.floor("H")
+    .dt.floor("h")
 )
 
 timeline_df = (
