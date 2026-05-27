@@ -572,38 +572,43 @@ if len(selected_sequences) > 0:
 # LATEST STATUS FILTER
 # =====================================================
 
-latest_status_filter = st.multiselect(
+latest_status_filter = st.selectbox(
     "Latest Meter Status Filter",
     options=[
+        "All",
         "Occurrence",
         "Restoration"
     ]
 )
 
-if len(latest_status_filter) > 0:
+if latest_status_filter != "All":
 
     sequence_df = sequence_df[
         sequence_df["LATEST_STATUS"]
-        .isin(latest_status_filter)
+        == latest_status_filter
     ]
 
 # =====================================================
 # SEARCH METER ID
 # =====================================================
 
-meter_search = st.text_input(
-    "Search Meter ID"
+meter_options = sorted(
+    sequence_df["METER_ID"]
+    .astype(str)
+    .unique()
 )
 
-if meter_search:
+selected_meter = st.selectbox(
+    "Search Meter ID",
+    options=["All"] + meter_options
+)
+
+if selected_meter != "All":
 
     sequence_df = sequence_df[
         sequence_df["METER_ID"]
-        .str.contains(
-            meter_search,
-            case=False,
-            na=False
-        )
+        .astype(str)
+        == selected_meter
     ]
 
 # =====================================================
