@@ -198,15 +198,43 @@ st.sidebar.header("Filters")
 # DATETIME FILTERS
 # =====================================================
 
-start_filter = st.sidebar.datetime_input(
-    "Start Datetime",
-    value=start_time
+st.sidebar.caption(
+    "Datetime Format: DD-MM-YYYY HH:MM AM/PM"
 )
 
-end_filter = st.sidebar.datetime_input(
-    "End Datetime",
-    value=end_time
+start_filter_text = st.sidebar.text_input(
+    "Start Datetime",
+    value=start_time.strftime(
+        "%d-%m-%Y %I:%M %p"
+    )
 )
+
+end_filter_text = st.sidebar.text_input(
+    "End Datetime",
+    value=end_time.strftime(
+        "%d-%m-%Y %I:%M %p"
+    )
+)
+
+try:
+
+    start_filter = pd.to_datetime(
+        start_filter_text,
+        format="%d-%m-%Y %I:%M %p"
+    )
+
+    end_filter = pd.to_datetime(
+        end_filter_text,
+        format="%d-%m-%Y %I:%M %p"
+    )
+
+except:
+
+    st.sidebar.error(
+        "Invalid datetime format"
+    )
+
+    st.stop()
 
 filtered_df = merged_df[
     (merged_df["EVENT_TIME"] >= start_filter) &
