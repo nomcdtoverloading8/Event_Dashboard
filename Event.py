@@ -17,7 +17,7 @@ st.set_page_config(
 
 st.title("Restoration Outage Dashboard")
 
-# Hide ugly error traces
+# Hide detailed error traces
 st.set_option('client.showErrorDetails', False)
 
 # =====================================================
@@ -92,6 +92,7 @@ def load_data():
 
     return master_df, event_df
 
+
 # =====================================================
 # SAFE LOADING
 # =====================================================
@@ -158,11 +159,11 @@ merged_df = event_df.merge(
 # DATA DURATION
 # =====================================================
 
-st.subheader("Data Duration")
-
 start_time = merged_df["EVENT_TIME"].min()
 
 end_time = merged_df["EVENT_TIME"].max()
+
+st.subheader("Data Duration")
 
 col1, col2, col3 = st.columns(3)
 
@@ -170,14 +171,14 @@ with col1:
 
     st.metric(
         "Start Time",
-        str(start_time)
+        start_time.strftime("%d-%m-%Y %I:%M:%S %p")
     )
 
 with col2:
 
     st.metric(
         "End Time",
-        str(end_time)
+        end_time.strftime("%d-%m-%Y %I:%M:%S %p")
     )
 
 with col3:
@@ -193,28 +194,50 @@ with col3:
 
 st.sidebar.header("Filters")
 
-# -----------------------------
-# DATE FILTER
-# -----------------------------
+# =====================================================
+# DATE FILTERS
+# =====================================================
 
-start_filter = st.sidebar.datetime_input(
+st.sidebar.subheader("Date and Time Filters")
+
+start_date = st.sidebar.date_input(
     "Start Date",
-    value=start_time
+    value=start_time.date()
 )
 
-end_filter = st.sidebar.datetime_input(
+start_clock = st.sidebar.time_input(
+    "Start Time",
+    value=start_time.time()
+)
+
+end_date = st.sidebar.date_input(
     "End Date",
-    value=end_time
+    value=end_time.date()
+)
+
+end_clock = st.sidebar.time_input(
+    "End Time",
+    value=end_time.time()
+)
+
+start_filter = pd.Timestamp.combine(
+    start_date,
+    start_clock
+)
+
+end_filter = pd.Timestamp.combine(
+    end_date,
+    end_clock
 )
 
 filtered_df = merged_df[
-    (merged_df["EVENT_TIME"] >= pd.Timestamp(start_filter)) &
-    (merged_df["EVENT_TIME"] <= pd.Timestamp(end_filter))
+    (merged_df["EVENT_TIME"] >= start_filter) &
+    (merged_df["EVENT_TIME"] <= end_filter)
 ]
 
-# -----------------------------
+# =====================================================
 # CIRCLE FILTER
-# -----------------------------
+# =====================================================
 
 circle_options = sorted(
     filtered_df["CIRCLE"]
@@ -233,6 +256,98 @@ if selected_circle:
     filtered_df = filtered_df[
         filtered_df["CIRCLE"]
         .isin(selected_circle)
+    ]
+
+# =====================================================
+# DIVISION FILTER
+# =====================================================
+
+division_options = sorted(
+    filtered_df["DIVISION"]
+    .dropna()
+    .unique()
+)
+
+selected_division = st.sidebar.multiselect(
+    "Division",
+    options=division_options,
+    default=division_options
+)
+
+if selected_division:
+
+    filtered_df = filtered_df[
+        filtered_df["DIVISION"]
+        .isin(selected_division)
+    ]
+
+# =====================================================
+# ZONE/DC FILTER
+# =====================================================
+
+zone_options = sorted(
+    filtered_df["ZONE/DC"]
+    .dropna()
+    .unique()
+)
+
+selected_zone = st.sidebar.multiselect(
+    "Zone/DC",
+    options=zone_options,
+    default=zone_options
+)
+
+if selected_zone:
+
+    filtered_df = filtered_df[
+        filtered_df["ZONE/DC"]
+        .isin(selected_zone)
+    ]
+
+# =====================================================
+# FEEDER S/S FILTER
+# =====================================================
+
+ss_options = sorted(
+    filtered_df["FEEDER S/S"]
+    .dropna()
+    .unique()
+)
+
+selected_ss = st.sidebar.multiselect(
+    "Feeder S/S",
+    options=ss_options,
+    default=ss_options
+)
+
+if selected_ss:
+
+    filtered_df = filtered_df[
+        filtered_df["FEEDER S/S"]
+        .isin(selected_ss)
+    ]
+
+# =====================================================
+# FEEDER TYPE FILTER
+# =====================================================
+
+feeder_type_options = sorted(
+    filtered_df["FEEDER TYPE"]
+    .dropna()
+    .unique()
+)
+
+selected_feeder_type = st.sidebar.multiselect(
+    "Feeder Type",
+    options=feeder_type_options,
+    default=feeder_type_options
+)
+
+if selected_feeder_type:
+
+    filtered_df = filtered_df[
+        filtered_df["FEEDER TYPE"]
+        .isin(selected_feeder_type)
     ]
 
 # =====================================================
@@ -266,31 +381,49 @@ st.plotly_chart(
 )
 
 # =====================================================
-# TIMELINE GRAPH
+# EVENT TIMELINE
 # =====================================================
 
 st.subheader("Event Timeline")
 
-filtered_df["HOUR"] = (
-    filtered_df["EVENT_TIME"]
-    .dt.floor("h")
+timeline_df = filtered_df.copy()
+
+timeline_df["TIME_BLOCK"] = (
+    timeline_df["EVENT_TIME"]
+    .dt.floor("15min")
 )
 
-timeline_df = (
-    filtered_df.groupby(
-        ["HOUR", "EVENT_CATEGORY"]
+timeline_summary = (
+    timeline_df.groupby(
+        ["TIME_BLOCK", "EVENT_CATEGORY"]
     )
     .size()
     .reset_index(name="COUNT")
 )
 
+timeline_summary["TIME_LABEL"] = (
+    timeline_summary["TIME_BLOCK"]
+    .dt.strftime("%d-%m-%Y %I:%M %p")
+)
+
 fig2 = px.line(
-    timeline_df,
-    x="HOUR",
+    timeline_summary,
+    x="TIME_BLOCK",
     y="COUNT",
     color="EVENT_CATEGORY",
     markers=True,
+    hover_data={
+        "TIME_LABEL": True,
+        "COUNT": True,
+        "TIME_BLOCK": False
+    },
     title="Event Timeline"
+)
+
+fig2.update_traces(
+    hovertemplate=
+    "<b>Time:</b> %{customdata[0]}<br>" +
+    "<b>Count:</b> %{y}<extra></extra>"
 )
 
 st.plotly_chart(
@@ -299,31 +432,182 @@ st.plotly_chart(
 )
 
 # =====================================================
-# METER EVENT SEQUENCES
+# METER EVENT SEQUENCE
 # =====================================================
 
 st.subheader("Meter Event Sequences")
 
-filtered_df = filtered_df.sort_values(
-    ["METER_ID", "EVENT_TIME"]
-)
-
 sequence_df = (
-    filtered_df.groupby("METER_ID")
-    ["EVENT_CATEGORY"]
-    .apply(lambda x: " → ".join(x))
-    .reset_index()
+    filtered_df
+    .sort_values(["METER_ID", "EVENT_TIME"])
+    .groupby("METER_ID")
+    .agg({
+        "EVENT_CATEGORY":
+            lambda x: " → ".join(x),
+
+        "EVENT_TIME":
+            ["min", "max"],
+
+        "CIRCLE":
+            "first",
+
+        "DIVISION":
+            "first",
+
+        "ZONE/DC":
+            "first",
+
+        "FEEDER S/S":
+            "first",
+
+        "FEEDER NAME":
+            "first",
+
+        "FEEDER TYPE":
+            "first"
+    })
 )
 
 sequence_df.columns = [
-    "METER_ID",
-    "SEQUENCE"
+    "SEQUENCE",
+    "START_TIME",
+    "END_TIME",
+    "CIRCLE",
+    "DIVISION",
+    "ZONE/DC",
+    "FEEDER S/S",
+    "FEEDER NAME",
+    "FEEDER TYPE"
 ]
+
+sequence_df = sequence_df.reset_index()
+
+sequence_df["START_TIME"] = (
+    sequence_df["START_TIME"]
+    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+)
+
+sequence_df["END_TIME"] = (
+    sequence_df["END_TIME"]
+    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+)
+
+# =====================================================
+# SEQUENCE FILTERS
+# =====================================================
+
+st.subheader("Sequence Filters")
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    meter_search = st.text_input(
+        "Search Meter ID"
+    )
+
+with col2:
+
+    sequence_search = st.selectbox(
+        "Sequence Type",
+        options=[
+            "All",
+            "Contains Occurrence",
+            "Contains Restoration",
+            "Occurrence Only",
+            "Restoration Only"
+        ]
+    )
+
+# =====================================================
+# APPLY SEQUENCE FILTERS
+# =====================================================
+
+if meter_search:
+
+    sequence_df = sequence_df[
+        sequence_df["METER_ID"]
+        .str.contains(
+            meter_search,
+            case=False,
+            na=False
+        )
+    ]
+
+if sequence_search == "Contains Occurrence":
+
+    sequence_df = sequence_df[
+        sequence_df["SEQUENCE"]
+        .str.contains(
+            "Occurrence",
+            case=False,
+            na=False
+        )
+    ]
+
+elif sequence_search == "Contains Restoration":
+
+    sequence_df = sequence_df[
+        sequence_df["SEQUENCE"]
+        .str.contains(
+            "Restoration",
+            case=False,
+            na=False
+        )
+    ]
+
+elif sequence_search == "Occurrence Only":
+
+    sequence_df = sequence_df[
+        (
+            sequence_df["SEQUENCE"]
+            .str.contains(
+                "Occurrence",
+                case=False,
+                na=False
+            )
+        )
+        &
+        (
+            ~sequence_df["SEQUENCE"]
+            .str.contains(
+                "Restoration",
+                case=False,
+                na=False
+            )
+        )
+    ]
+
+elif sequence_search == "Restoration Only":
+
+    sequence_df = sequence_df[
+        (
+            sequence_df["SEQUENCE"]
+            .str.contains(
+                "Restoration",
+                case=False,
+                na=False
+            )
+        )
+        &
+        (
+            ~sequence_df["SEQUENCE"]
+            .str.contains(
+                "Occurrence",
+                case=False,
+                na=False
+            )
+        )
+    ]
+
+# =====================================================
+# DISPLAY SEQUENCE TABLE
+# =====================================================
 
 st.dataframe(
     sequence_df,
     use_container_width=True,
-    height=400
+    height=500
 )
 
 # =====================================================
