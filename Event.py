@@ -446,53 +446,41 @@ sequence_df.columns = [
     "FEEDER TYPE"
 ]
 
-sequence_df = (
-    sequence_df
-    .reset_index()
-)
+sequence_df = sequence_df.reset_index()
 
 # =====================================================
-# SEQUENCE FILTERS
+# SEQUENCE FILTER
 # =====================================================
-
-st.markdown(
-    "### Sequence Filters"
-)
 
 sequence_options = list(
     sequence_df["SEQUENCE"]
     .unique()
 )
 
-priority_patterns = [
-    "Occurrence",
-    "Restoration"
-]
+occurrence_patterns = sorted([
+    x for x in sequence_options
+    if x.startswith("Occurrence")
+])
 
-ordered_options = []
-
-for pattern in priority_patterns:
-
-    matching = [
-        x for x in sequence_options
-        if x.startswith(pattern)
-    ]
-
-    ordered_options.extend(
-        sorted(matching)
-    )
+restoration_patterns = sorted([
+    x for x in sequence_options
+    if x.startswith("Restoration")
+])
 
 remaining_patterns = sorted([
     x for x in sequence_options
-    if x not in ordered_options
+    if x not in occurrence_patterns
+    and x not in restoration_patterns
 ])
 
-ordered_options.extend(
+ordered_options = (
+    occurrence_patterns +
+    restoration_patterns +
     remaining_patterns
 )
 
-selected_sequences = st.multiselect(
-    "Select Sequence Patterns",
+selected_sequences = st.sidebar.multiselect(
+    "Sequence Pattern",
     options=ordered_options
 )
 
