@@ -40,7 +40,7 @@ MASTER_URL = (
 
 EVENT_URL = (
     f"https://docs.google.com/spreadsheets/d/"
-    f"{EVENT_FILE_ID}/export?=csv"
+    f"{EVENT_FILE_ID}/export?format=csv"
 )
 
 # =====================================================
@@ -198,9 +198,11 @@ st.sidebar.header("Filters")
 # DATETIME FILTERS
 # =====================================================
 
-st.sidebar.caption(
-    "Datetime Format:\n"
-    "DD-MM-YYYY HH:MM AM/PM"
+st.sidebar.markdown(
+    """
+Datetime Format:  
+DD-MM-YYYY HH:MM AM/PM
+"""
 )
 
 start_filter_text = st.sidebar.text_input(
@@ -290,6 +292,29 @@ for col in filter_columns:
     )
 
 # =====================================================
+# EVENT CATEGORY FILTER
+# =====================================================
+
+event_category_options = sorted(
+    filtered_df["EVENT_CATEGORY"]
+    .dropna()
+    .astype(str)
+    .unique()
+)
+
+selected_event_categories = st.sidebar.multiselect(
+    "Event Category",
+    options=event_category_options
+)
+
+if len(selected_event_categories) > 0:
+
+    filtered_df = filtered_df[
+        filtered_df["EVENT_CATEGORY"]
+        .isin(selected_event_categories)
+    ]
+
+# =====================================================
 # OCCURRENCE VS RESTORATION COUNT
 # =====================================================
 
@@ -369,10 +394,6 @@ fig2.update_layout(
     title="Restoration vs Occurrence Timeline",
     hovermode="x unified"
 )
-
-# =====================================================
-# FORCE ALL X-AXIS TO SHOW TOOLTIPS
-# =====================================================
 
 fig2.update_xaxes(
     showspikes=True,
