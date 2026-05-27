@@ -17,18 +17,17 @@ st.set_page_config(
 
 st.title("Restoration Outage Dashboard")
 
-# Hide detailed error traces
 st.set_option('client.showErrorDetails', False)
 
 # =====================================================
-# GOOGLE SHEET IDS FROM STREAMLIT SECRETS
+# GOOGLE SHEET IDS
 # =====================================================
 
 MASTER_FILE_ID = st.secrets["MASTER_FILE_ID"]
 EVENT_FILE_ID = st.secrets["EVENT_FILE_ID"]
 
 # =====================================================
-# GOOGLE SHEET CSV URLS
+# GOOGLE SHEET URLS
 # =====================================================
 
 MASTER_URL = (
@@ -48,10 +47,7 @@ EVENT_URL = (
 @st.cache_data(ttl=300)
 def load_data():
 
-    # -----------------------------
     # MASTER FILE
-    # -----------------------------
-
     master_df = pd.read_csv(MASTER_URL)
 
     master_df.columns = (
@@ -60,10 +56,7 @@ def load_data():
         .str.upper()
     )
 
-    # -----------------------------
     # EVENT FILE AUTO HEADER DETECTION
-    # -----------------------------
-
     temp_df = pd.read_csv(
         EVENT_URL,
         header=None
@@ -160,31 +153,31 @@ merged_df = event_df.merge(
 # =====================================================
 
 start_time = merged_df["EVENT_TIME"].min()
-
 end_time = merged_df["EVENT_TIME"].max()
-
-st.subheader("Data Duration")
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
 
-    st.metric(
-        "Start Time",
-        start_time.strftime("%d-%m-%Y %I:%M:%S %p")
+    st.caption("Start Time")
+
+    st.write(
+        start_time.strftime("%d-%m-%Y %I:%M %p")
     )
 
 with col2:
 
-    st.metric(
-        "End Time",
-        end_time.strftime("%d-%m-%Y %I:%M:%S %p")
+    st.caption("End Time")
+
+    st.write(
+        end_time.strftime("%d-%m-%Y %I:%M %p")
     )
 
 with col3:
 
-    st.metric(
-        "Duration",
+    st.caption("Duration")
+
+    st.write(
         str(end_time - start_time)
     )
 
@@ -195,10 +188,8 @@ with col3:
 st.sidebar.header("Filters")
 
 # =====================================================
-# DATE FILTERS
+# DATE FILTER
 # =====================================================
-
-st.sidebar.subheader("Date and Time Filters")
 
 start_date = st.sidebar.date_input(
     "Start Date",
@@ -236,125 +227,40 @@ filtered_df = merged_df[
 ]
 
 # =====================================================
-# CIRCLE FILTER
+# FILTERS
 # =====================================================
 
-circle_options = sorted(
-    filtered_df["CIRCLE"]
-    .dropna()
-    .unique()
-)
+filter_columns = [
+    "CIRCLE",
+    "DIVISION",
+    "ZONE/DC",
+    "FEEDER S/S",
+    "FEEDER TYPE"
+]
 
-selected_circle = st.sidebar.multiselect(
-    "Circle",
-    options=circle_options,
-    default=circle_options
-)
+for col in filter_columns:
 
-if selected_circle:
+    options = sorted(
+        filtered_df[col]
+        .dropna()
+        .unique()
+    )
 
-    filtered_df = filtered_df[
-        filtered_df["CIRCLE"]
-        .isin(selected_circle)
-    ]
+    selected = st.sidebar.multiselect(
+        col,
+        options=options,
+        default=options
+    )
 
-# =====================================================
-# DIVISION FILTER
-# =====================================================
+    if selected:
 
-division_options = sorted(
-    filtered_df["DIVISION"]
-    .dropna()
-    .unique()
-)
-
-selected_division = st.sidebar.multiselect(
-    "Division",
-    options=division_options,
-    default=division_options
-)
-
-if selected_division:
-
-    filtered_df = filtered_df[
-        filtered_df["DIVISION"]
-        .isin(selected_division)
-    ]
-
-# =====================================================
-# ZONE/DC FILTER
-# =====================================================
-
-zone_options = sorted(
-    filtered_df["ZONE/DC"]
-    .dropna()
-    .unique()
-)
-
-selected_zone = st.sidebar.multiselect(
-    "Zone/DC",
-    options=zone_options,
-    default=zone_options
-)
-
-if selected_zone:
-
-    filtered_df = filtered_df[
-        filtered_df["ZONE/DC"]
-        .isin(selected_zone)
-    ]
-
-# =====================================================
-# FEEDER S/S FILTER
-# =====================================================
-
-ss_options = sorted(
-    filtered_df["FEEDER S/S"]
-    .dropna()
-    .unique()
-)
-
-selected_ss = st.sidebar.multiselect(
-    "Feeder S/S",
-    options=ss_options,
-    default=ss_options
-)
-
-if selected_ss:
-
-    filtered_df = filtered_df[
-        filtered_df["FEEDER S/S"]
-        .isin(selected_ss)
-    ]
-
-# =====================================================
-# FEEDER TYPE FILTER
-# =====================================================
-
-feeder_type_options = sorted(
-    filtered_df["FEEDER TYPE"]
-    .dropna()
-    .unique()
-)
-
-selected_feeder_type = st.sidebar.multiselect(
-    "Feeder Type",
-    options=feeder_type_options,
-    default=feeder_type_options
-)
-
-if selected_feeder_type:
-
-    filtered_df = filtered_df[
-        filtered_df["FEEDER TYPE"]
-        .isin(selected_feeder_type)
-    ]
+        filtered_df = filtered_df[
+            filtered_df[col].isin(selected)
+        ]
 
 # =====================================================
 # EVENT COUNTS
 # =====================================================
-
-st.subheader("Event Counts")
 
 count_df = (
     filtered_df["EVENT_CATEGORY"]
@@ -372,7 +278,12 @@ fig = px.bar(
     x="EVENT_CATEGORY",
     y="COUNT",
     text="COUNT",
-    title="Occurrence vs Restoration Count"
+    color="EVENT_CATEGORY",
+    title="Occurrence vs Restoration"
+)
+
+fig.update_traces(
+    textposition="outside"
 )
 
 st.plotly_chart(
@@ -383,8 +294,6 @@ st.plotly_chart(
 # =====================================================
 # EVENT TIMELINE
 # =====================================================
-
-st.subheader("Event Timeline")
 
 timeline_df = filtered_df.copy()
 
@@ -412,18 +321,18 @@ fig2 = px.line(
     y="COUNT",
     color="EVENT_CATEGORY",
     markers=True,
-    hover_data={
-        "TIME_LABEL": True,
-        "COUNT": True,
-        "TIME_BLOCK": False
-    },
-    title="Event Timeline"
+    custom_data=["TIME_LABEL"]
 )
 
 fig2.update_traces(
     hovertemplate=
     "<b>Time:</b> %{customdata[0]}<br>" +
     "<b>Count:</b> %{y}<extra></extra>"
+)
+
+fig2.update_layout(
+    title="Restoration vs Occurrence Timeline",
+    hovermode="x unified"
 )
 
 st.plotly_chart(
@@ -435,13 +344,12 @@ st.plotly_chart(
 # METER EVENT SEQUENCE
 # =====================================================
 
-st.subheader("Meter Event Sequences")
-
 sequence_df = (
     filtered_df
     .sort_values(["METER_ID", "EVENT_TIME"])
     .groupby("METER_ID")
     .agg({
+
         "EVENT_CATEGORY":
             lambda x: " → ".join(x),
 
@@ -482,21 +390,64 @@ sequence_df.columns = [
 
 sequence_df = sequence_df.reset_index()
 
-sequence_df["START_TIME"] = (
-    sequence_df["START_TIME"]
-    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+# =====================================================
+# SEQUENCE CLASSIFICATION
+# =====================================================
+
+def classify_sequence(seq):
+
+    seq = seq.lower()
+
+    has_occ = "occurrence" in seq
+    has_res = "restoration" in seq
+
+    if has_occ and not has_res:
+        return "Not Restored"
+
+    elif has_occ and has_res:
+        return "Restored"
+
+    elif has_res and not has_occ:
+        return "Restoration Only"
+
+    else:
+        return "Unknown"
+
+sequence_df["STATUS"] = (
+    sequence_df["SEQUENCE"]
+    .apply(classify_sequence)
 )
 
-sequence_df["END_TIME"] = (
-    sequence_df["END_TIME"]
-    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+# =====================================================
+# SEQUENCE GRAPH
+# =====================================================
+
+sequence_graph_df = (
+    sequence_df["STATUS"]
+    .value_counts()
+    .reset_index()
+)
+
+sequence_graph_df.columns = [
+    "STATUS",
+    "COUNT"
+]
+
+fig3 = px.pie(
+    sequence_graph_df,
+    names="STATUS",
+    values="COUNT",
+    title="Meter Restoration Status"
+)
+
+st.plotly_chart(
+    fig3,
+    use_container_width=True
 )
 
 # =====================================================
 # SEQUENCE FILTERS
 # =====================================================
-
-st.subheader("Sequence Filters")
 
 col1, col2 = st.columns(2)
 
@@ -508,19 +459,14 @@ with col1:
 
 with col2:
 
-    sequence_search = st.selectbox(
-        "Sequence Type",
-        options=[
-            "All",
-            "Contains Occurrence",
-            "Contains Restoration",
-            "Occurrence Only",
-            "Restoration Only"
-        ]
+    status_filter = st.multiselect(
+        "Status Filter",
+        options=sequence_df["STATUS"].unique(),
+        default=sequence_df["STATUS"].unique()
     )
 
 # =====================================================
-# APPLY SEQUENCE FILTERS
+# APPLY FILTERS
 # =====================================================
 
 if meter_search:
@@ -534,74 +480,27 @@ if meter_search:
         )
     ]
 
-if sequence_search == "Contains Occurrence":
-
-    sequence_df = sequence_df[
-        sequence_df["SEQUENCE"]
-        .str.contains(
-            "Occurrence",
-            case=False,
-            na=False
-        )
-    ]
-
-elif sequence_search == "Contains Restoration":
-
-    sequence_df = sequence_df[
-        sequence_df["SEQUENCE"]
-        .str.contains(
-            "Restoration",
-            case=False,
-            na=False
-        )
-    ]
-
-elif sequence_search == "Occurrence Only":
-
-    sequence_df = sequence_df[
-        (
-            sequence_df["SEQUENCE"]
-            .str.contains(
-                "Occurrence",
-                case=False,
-                na=False
-            )
-        )
-        &
-        (
-            ~sequence_df["SEQUENCE"]
-            .str.contains(
-                "Restoration",
-                case=False,
-                na=False
-            )
-        )
-    ]
-
-elif sequence_search == "Restoration Only":
-
-    sequence_df = sequence_df[
-        (
-            sequence_df["SEQUENCE"]
-            .str.contains(
-                "Restoration",
-                case=False,
-                na=False
-            )
-        )
-        &
-        (
-            ~sequence_df["SEQUENCE"]
-            .str.contains(
-                "Occurrence",
-                case=False,
-                na=False
-            )
-        )
-    ]
+sequence_df = sequence_df[
+    sequence_df["STATUS"]
+    .isin(status_filter)
+]
 
 # =====================================================
-# DISPLAY SEQUENCE TABLE
+# FORMAT TIMES
+# =====================================================
+
+sequence_df["START_TIME"] = (
+    sequence_df["START_TIME"]
+    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+)
+
+sequence_df["END_TIME"] = (
+    sequence_df["END_TIME"]
+    .dt.strftime("%d-%m-%Y %I:%M:%S %p")
+)
+
+# =====================================================
+# DISPLAY TABLE
 # =====================================================
 
 st.dataframe(
@@ -614,18 +513,18 @@ st.dataframe(
 # RAW DATA
 # =====================================================
 
-st.subheader("Raw Data")
+with st.expander("Raw Data"):
 
-st.dataframe(
-    filtered_df,
-    use_container_width=True,
-    height=500
-)
+    st.dataframe(
+        filtered_df,
+        use_container_width=True,
+        height=500
+    )
 
 # =====================================================
 # FOOTER
 # =====================================================
 
-st.success(
+st.caption(
     "Dashboard auto-refreshes every 5 minutes from Google Sheets."
 )
